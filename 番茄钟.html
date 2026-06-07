@@ -3,156 +3,286 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🍅 番茄钟</title>
+<title>专注 · 番茄钟</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+:root {
+  --ink: #161613;
+  --paper: #F2EDE6;
+  --vermillion: #C84B31;
+  --gold: #B8975A;
+  --stone: #3D3A35;
+  --moss: #5B6C5C;
+  --charcoal: #262522;
+}
 * { margin: 0; padding: 0; box-sizing: border-box; }
+
 body {
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+  font-family: 'Noto Serif SC', serif;
+  background: var(--ink);
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
   user-select: none; overflow: hidden;
-}
-.app {
-  background: rgba(255,255,255,0.03);
-  border-radius: 32px; padding: 48px 56px;
-  box-shadow: 0 32px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
-  backdrop-filter: blur(20px); text-align: center; min-width: 420px;
+  background-image:
+    radial-gradient(ellipse at 30% 20%, rgba(200,75,49,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 70% 80%, rgba(184,151,90,0.04) 0%, transparent 60%),
+    url("data:image/svg+xml,%3Csvg width='4' height='4' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='1' height='1' fill='%23ffffff' fill-opacity='0.015'/%3E%3C/svg%3E");
 }
 
-/* 模式切换 */
+.app {
+  position: relative; padding: 56px 64px 48px;
+  max-width: 460px; width: 100%;
+}
+
+/* ── 装饰性竖线 ── */
+.app::before {
+  content: ''; position: absolute; left: 0; top: 40px; bottom: 40px;
+  width: 1px; background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.08) 20%, rgba(255,255,255,0.08) 80%, transparent);
+}
+
+/* ── 标题 ── */
+.title-row {
+  display: flex; align-items: baseline; gap: 16px; margin-bottom: 40px; padding-left: 24px;
+}
+.title-char {
+  font-size: 13px; font-weight: 400; color: rgba(255,255,255,0.35);
+  letter-spacing: 4px; writing-mode: vertical-rl;
+}
+.title-divider { width: 24px; height: 1px; background: rgba(255,255,255,0.12); }
+
+/* ── 模式切换 ── */
 .mode-switch {
-  display: flex; background: rgba(255,255,255,0.06); border-radius: 14px;
-  padding: 4px; margin-bottom: 32px; gap: 4px;
+  display: flex; gap: 0; margin-bottom: 48px; padding-left: 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 .mode-btn {
-  flex: 1; padding: 10px 20px; border: none; border-radius: 12px;
-  cursor: pointer; font-size: 15px; font-weight: 600;
-  background: transparent; color: #888; transition: all 0.3s;
+  padding: 10px 0 14px; border: none; cursor: pointer;
+  font-family: 'Noto Serif SC', serif; font-size: 14px; font-weight: 400;
+  background: transparent; color: rgba(255,255,255,0.28);
+  transition: all 0.4s; position: relative; margin-right: 36px;
+  letter-spacing: 1px;
 }
-.mode-btn.active {
-  background: #e74c3c; color: #fff; box-shadow: 0 4px 16px rgba(231,76,60,0.4);
+.mode-btn::after {
+  content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 1px;
+  background: var(--vermillion); transform: scaleX(0); transition: transform 0.4s;
 }
+.mode-btn.active { color: var(--paper); }
+.mode-btn.active::after { transform: scaleX(1); }
 
-/* 计时器圆圈 */
-.timer-ring-container {
-  position: relative; width: 280px; height: 280px; margin: 0 auto 32px;
+/* ── 环形计时器 ── */
+.ring-container {
+  position: relative; width: 300px; height: 300px; margin: 0 auto 48px;
 }
+.ring-container svg { width: 100%; height: 100%; }
 .ring-bg {
-  fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 10;
+  fill: none; stroke: rgba(255,255,255,0.04); stroke-width: 2;
+}
+.ring-track {
+  fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 1;
 }
 .ring-progress {
-  fill: none; stroke: #e74c3c; stroke-width: 10;
+  fill: none; stroke: var(--vermillion); stroke-width: 2;
   stroke-linecap: round; transform: rotate(-90deg); transform-origin: center;
-  transition: stroke-dashoffset 0.3s linear;
+  transition: stroke-dashoffset 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 0 6px rgba(200,75,49,0.5));
 }
-.ring-progress.countup { stroke: #2ecc71; }
+.ring-progress.countup { stroke: var(--gold); filter: drop-shadow(0 0 6px rgba(184,151,90,0.5)); }
+
+/* 数字刻度点 */
+.tick-mark {
+  fill: rgba(255,255,255,0.1); r: 1.5;
+}
+
+/* 时间显示 */
 .timer-display {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  font-size: 54px; font-weight: 700; color: #fff;
-  font-variant-numeric: tabular-nums; font-family: 'Cascadia Code', 'Fira Code', monospace;
-  letter-spacing: 2px;
+  text-align: center;
 }
+.timer-minutes {
+  font-family: 'DM Mono', monospace; font-size: 72px; font-weight: 400;
+  color: var(--paper); letter-spacing: -2px; line-height: 1;
+}
+.timer-seconds {
+  font-family: 'DM Mono', monospace; font-size: 28px; font-weight: 400;
+  color: rgba(255,255,255,0.35); margin-top: 2px;
+}
+.timer-sep { opacity: 0; }
 
-/* 预设时间 */
+/* ── 预设按钮 ── */
 .presets {
-  display: flex; gap: 10px; justify-content: center; margin-bottom: 24px;
+  display: flex; gap: 8px; justify-content: center; margin-bottom: 32px; flex-wrap: wrap;
 }
 .preset-btn {
-  padding: 8px 18px; border: 1px solid rgba(255,255,255,0.12); border-radius: 20px;
-  cursor: pointer; font-size: 14px; font-weight: 500; background: rgba(255,255,255,0.04);
-  color: #aaa; transition: all 0.25s;
+  padding: 8px 20px; border: 1px solid rgba(255,255,255,0.08); border-radius: 0;
+  cursor: pointer; font-family: 'Noto Serif SC', serif; font-size: 13px; font-weight: 400;
+  background: transparent; color: rgba(255,255,255,0.4); transition: all 0.3s;
+  letter-spacing: 1px;
 }
-.preset-btn:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.25); }
-.preset-btn.selected { background: #e74c3c; border-color: #e74c3c; color: #fff; }
+.preset-btn:hover { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.7); }
+.preset-btn.selected {
+  background: rgba(200,75,49,0.15); border-color: var(--vermillion); color: var(--vermillion);
+  box-shadow: 0 0 20px rgba(200,75,49,0.1);
+}
 
-/* 控制按钮 */
-.controls { display: flex; gap: 14px; justify-content: center; margin-bottom: 20px; }
+/* ── 控制按钮 ── */
+.controls { display: flex; gap: 16px; justify-content: center; align-items: center; margin-bottom: 28px; }
 .ctrl-btn {
-  width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
-  font-size: 22px; transition: all 0.25s; display: flex; align-items: center; justify-content: center;
-}
-.btn-start {
-  width: 72px; height: 72px; font-size: 28px;
-  background: #e74c3c; color: #fff; box-shadow: 0 8px 28px rgba(231,76,60,0.45);
-}
-.btn-start:hover { transform: scale(1.06); box-shadow: 0 12px 36px rgba(231,76,60,0.6); }
-.btn-start.running { background: #f39c12; box-shadow: 0 8px 28px rgba(243,156,18,0.45); }
-.btn-reset {
-  background: rgba(255,255,255,0.06); color: #888; border: 1px solid rgba(255,255,255,0.08);
-}
-.btn-reset:hover { background: rgba(255,255,255,0.12); color: #fff; }
-
-/* 状态文字 */
-.status { font-size: 13px; color: #666; margin-top: 8px; letter-spacing: 1px; }
-.status .tomato { margin-right: 4px; }
-
-/* 自定义时间 */
-.custom-row {
+  width: 52px; height: 52px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer; font-size: 18px; transition: all 0.35s;
   display: flex; align-items: center; justify-content: center;
-  gap: 8px; margin-top: 16px;
+  background: transparent; color: rgba(255,255,255,0.4);
+}
+.ctrl-btn:hover { border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.8); }
+.btn-main {
+  width: 68px; height: 68px; font-size: 24px;
+  background: var(--vermillion); color: #fff; border: none;
+  box-shadow: 0 6px 30px rgba(200,75,49,0.35), 0 0 0 6px rgba(200,75,49,0.06);
+}
+.btn-main:hover { transform: scale(1.05); box-shadow: 0 8px 36px rgba(200,75,49,0.5), 0 0 0 10px rgba(200,75,49,0.1); }
+.btn-main.running { background: var(--gold); box-shadow: 0 6px 30px rgba(184,151,90,0.4), 0 0 0 6px rgba(184,151,90,0.06); }
+
+/* ── 状态文字 ── */
+.status-row {
+  text-align: center; margin-bottom: 24px;
+}
+.status {
+  font-family: 'Noto Serif SC', serif; font-size: 13px; color: rgba(255,255,255,0.25);
+  letter-spacing: 2px; transition: color 0.5s;
+}
+
+/* ── 自定义 ── */
+.custom-row {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
 }
 .custom-row input {
-  width: 54px; padding: 8px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.04); color: #fff; text-align: center; font-size: 15px; outline: none;
+  width: 48px; padding: 8px 4px; border: none; border-bottom: 1px solid rgba(255,255,255,0.12);
+  background: transparent; color: var(--paper); text-align: center;
+  font-family: 'DM Mono', monospace; font-size: 16px; outline: none;
+  transition: border-color 0.3s;
 }
-.custom-row input:focus { border-color: #e74c3c; }
-.custom-row span { color: #666; font-size: 13px; }
+.custom-row input:focus { border-bottom-color: var(--vermillion); }
+.custom-row .custom-label {
+  font-size: 12px; color: rgba(255,255,255,0.25); letter-spacing: 1px;
+}
+.custom-row .custom-apply {
+  padding: 6px 16px; border: 1px solid rgba(255,255,255,0.08); border-radius: 0;
+  cursor: pointer; background: transparent; color: rgba(255,255,255,0.3);
+  font-family: 'Noto Serif SC', serif; font-size: 12px; letter-spacing: 1px;
+  transition: all 0.3s;
+}
+.custom-row .custom-apply:hover { border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.7); }
+
+/* ── 完成动画 ── */
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(200,75,49,0.6); }
+  50% { box-shadow: 0 0 0 24px rgba(200,75,49,0); }
+}
+.ring-complete {
+  animation: pulse 1.2s ease-in-out 3;
+}
+@keyframes celebrate {
+  0% { transform: translate(-50%, -50%) scale(1); }
+  25% { transform: translate(-50%, -50%) scale(1.08); }
+  50% { transform: translate(-50%, -50%) scale(0.97); }
+  75% { transform: translate(-50%, -50%) scale(1.04); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+.timer-celebrate {
+  animation: celebrate 0.6s ease-out;
+}
 </style>
 </head>
 <body>
 
 <div class="app">
-  <!-- 模式切换 -->
-  <div class="mode-switch">
-    <button class="mode-btn active" data-mode="countdown" onclick="switchMode('countdown')">⏳ 倒计时</button>
-    <button class="mode-btn" data-mode="countup" onclick="switchMode('countup')">⏱ 正计时</button>
+  <!-- 标题 -->
+  <div class="title-row">
+    <span class="title-char">专注</span>
+    <span class="title-divider"></span>
   </div>
 
-  <!-- 计时器 -->
-  <div class="timer-ring-container">
-    <svg width="280" height="280" viewBox="0 0 280 280">
-      <circle class="ring-bg" cx="140" cy="140" r="125"/>
-      <circle class="ring-progress" id="ring" cx="140" cy="140" r="125"
-              stroke-dasharray="785.4" stroke-dashoffset="0"/>
+  <!-- 模式切换 -->
+  <div class="mode-switch">
+    <button class="mode-btn active" data-mode="countdown" onclick="switchMode('countdown')">倒计时</button>
+    <button class="mode-btn" data-mode="countup" onclick="switchMode('countup')">正计时</button>
+  </div>
+
+  <!-- 环形计时器 -->
+  <div class="ring-container" id="ringContainer">
+    <svg viewBox="0 0 300 300">
+      <!-- 刻度线 -->
+      <g id="ticks"></g>
+      <!-- 背景轨道 -->
+      <circle class="ring-track" cx="150" cy="150" r="125"/>
+      <circle class="ring-bg" cx="150" cy="150" r="132"/>
+      <!-- 进度弧 -->
+      <circle class="ring-progress" id="ring" cx="150" cy="150" r="128.5"
+              stroke-dasharray="0" stroke-dashoffset="0"/>
     </svg>
-    <div class="timer-display" id="display">25:00</div>
+    <div class="timer-display" id="displayWrap">
+      <div class="timer-minutes" id="display">25<span class="timer-sep">:</span>00</div>
+    </div>
   </div>
 
   <!-- 预设 -->
   <div class="presets">
+    <button class="preset-btn" onclick="setPreset(5)">5 分钟</button>
     <button class="preset-btn selected" onclick="setPreset(25)">25 分钟</button>
     <button class="preset-btn" onclick="setPreset(15)">15 分钟</button>
-    <button class="preset-btn" onclick="setPreset(5)">5 分钟</button>
     <button class="preset-btn" onclick="setPreset(45)">45 分钟</button>
     <button class="preset-btn" onclick="setPreset(60)">60 分钟</button>
   </div>
 
   <!-- 控制 -->
   <div class="controls">
-    <button class="ctrl-btn btn-reset" onclick="reset()" title="重置">↺</button>
-    <button class="ctrl-btn btn-start" id="startBtn" onclick="toggle()">▶</button>
+    <button class="ctrl-btn" onclick="reset()" title="重置">↺</button>
+    <button class="ctrl-btn btn-main" id="startBtn" onclick="toggle()">▶</button>
+    <button class="ctrl-btn" onclick="skipToEnd()" title="快进">⏭</button>
   </div>
-  <div class="status" id="status">🍅 准备专注</div>
+
+  <div class="status-row">
+    <span class="status" id="status">准备专注</span>
+  </div>
 
   <!-- 自定义 -->
   <div class="custom-row">
-    <input type="number" id="customMin" min="1" max="120" value="30" placeholder="分钟">
-    <span>分钟</span>
-    <button class="preset-btn" onclick="setCustom()">自定义</button>
+    <input type="number" id="customMin" min="1" max="120" value="30">
+    <span class="custom-label">分钟</span>
+    <button class="custom-apply" onclick="setCustom()">自定义</button>
   </div>
 </div>
 
 <script>
-const CIRCUMFERENCE = 2 * Math.PI * 125; // 785.4
+const RADIUS = 128.5;
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const ring = document.getElementById('ring');
-const display = document.getElementById('display');
+const displayEl = document.getElementById('display');
 const startBtn = document.getElementById('startBtn');
 const statusEl = document.getElementById('status');
+const ringContainer = document.getElementById('ringContainer');
+const displayWrap = document.getElementById('displayWrap');
+
 ring.style.strokeDasharray = CIRCUMFERENCE;
 ring.style.strokeDashoffset = 0;
 
-let mode = 'countdown';       // 'countdown' | 'countup'
-let totalSeconds = 25 * 60;   // 预设25分钟
+// 绘制刻度线
+const ticksGroup = document.getElementById('ticks');
+for (let i = 0; i < 60; i++) {
+  const angle = (i / 60) * Math.PI * 2 - Math.PI / 2;
+  const len = i % 5 === 0 ? 12 : 6;
+  const r1 = i % 5 === 0 ? 105 : 110;
+  const r2 = r1 + len;
+  const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  circle.setAttribute('cx', 150 + Math.cos(angle) * (r1 + len/2));
+  circle.setAttribute('cy', 150 + Math.sin(angle) * (r1 + len/2));
+  circle.setAttribute('r', i % 5 === 0 ? 2 : 1);
+  circle.setAttribute('fill', i % 5 === 0 ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)');
+  ticksGroup.appendChild(circle);
+}
+
+let mode = 'countdown';
+let totalSeconds = 25 * 60;
 let remainingSeconds = totalSeconds;
 let running = false;
 let interval = null;
@@ -174,7 +304,7 @@ function setPreset(min) {
   event.target.classList.add('selected');
   updateDisplay();
   updateRing();
-  statusEl.innerHTML = '🍅 准备专注';
+  statusEl.textContent = '准备专注';
 }
 
 function setCustom() {
@@ -186,13 +316,10 @@ function setCustom() {
   document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('selected'));
   updateDisplay();
   updateRing();
-  statusEl.innerHTML = '🍅 准备专注';
+  statusEl.textContent = '准备专注';
 }
 
-function toggle() {
-  if (!running) start();
-  else pause();
-}
+function toggle() { running ? pause() : start(); }
 
 function start() {
   if (running) return;
@@ -204,18 +331,13 @@ function start() {
   running = true;
   startBtn.textContent = '⏸';
   startBtn.classList.add('running');
-  let statusText = mode === 'countdown'
-    ? '🍅 专注中...' : '⏱ 计时中...';
-  statusEl.innerHTML = statusText;
+  statusEl.textContent = mode === 'countdown' ? '专注中' : '计时中';
+  ringContainer.classList.remove('ring-complete');
 
   interval = setInterval(() => {
     if (mode === 'countdown') {
       remainingSeconds--;
-      if (remainingSeconds <= 0) {
-        remainingSeconds = 0;
-        complete();
-        return;
-      }
+      if (remainingSeconds <= 0) { remainingSeconds = 0; complete(); return; }
     } else {
       remainingSeconds++;
     }
@@ -229,22 +351,28 @@ function pause() {
   clearInterval(interval);
   startBtn.textContent = '▶';
   startBtn.classList.remove('running');
-  statusEl.innerHTML = '🍅 已暂停';
+  statusEl.textContent = '已暂停';
 }
 
 function reset() {
   running = false;
   clearInterval(interval);
-  if (mode === 'countdown') {
-    remainingSeconds = totalSeconds;
-  } else {
-    remainingSeconds = 0;
-  }
+  remainingSeconds = mode === 'countdown' ? totalSeconds : 0;
   startBtn.textContent = '▶';
   startBtn.classList.remove('running');
   updateDisplay();
   updateRing();
-  statusEl.innerHTML = '🍅 准备专注';
+  statusEl.textContent = '准备专注';
+  ringContainer.classList.remove('ring-complete');
+}
+
+function skipToEnd() {
+  if (mode !== 'countdown') return;
+  if (!running) return;
+  remainingSeconds = 0;
+  updateDisplay();
+  updateRing();
+  complete();
 }
 
 function complete() {
@@ -252,49 +380,57 @@ function complete() {
   clearInterval(interval);
   startBtn.textContent = '▶';
   startBtn.classList.remove('running');
-  statusEl.innerHTML = '🎉 完成！休息一下吧~';
+  statusEl.textContent = '完成！';
+  statusEl.style.color = 'var(--vermillion)';
   updateDisplay();
   updateRing();
+  ringContainer.classList.add('ring-complete');
+  displayWrap.classList.add('timer-celebrate');
+  setTimeout(() => displayWrap.classList.remove('timer-celebrate'), 600);
   playSound();
-  // 闪烁提示
+  // 闪烁恢复
   let count = 0;
   const flash = setInterval(() => {
-    statusEl.style.color = count % 2 === 0 ? '#e74c3c' : '#2ecc71';
-    if (++count >= 10) { clearInterval(flash); statusEl.style.color = '#666'; }
-  }, 500);
+    statusEl.style.color = count % 2 === 0 ? 'var(--vermillion)' : 'var(--gold)';
+    if (++count >= 8) {
+      clearInterval(flash);
+      statusEl.style.color = 'rgba(255,255,255,0.25)';
+    }
+  }, 600);
 }
 
 function playSound() {
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  // 播放一段悦耳的完成音效
-  const notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
+  // 日本音阶：D4 F4 A4 D5
+  const notes = [293.66, 349.23, 440, 587.33];
   notes.forEach((freq, i) => {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
-    osc.type = 'triangle';
+    osc.type = 'sine';
     osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.25, ctx.currentTime + i * 0.2);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.2 + 0.5);
-    osc.start(ctx.currentTime + i * 0.2);
-    osc.stop(ctx.currentTime + i * 0.2 + 0.5);
+    const t = ctx.currentTime + i * 0.22;
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+    osc.start(t); osc.stop(t + 0.6);
   });
-  // 最后一个长音
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.connect(gain); gain.connect(ctx.destination);
-  osc.type = 'triangle';
-  osc.frequency.value = 1046.5;
-  gain.gain.setValueAtTime(0.3, ctx.currentTime + 0.8);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8 + 1.2);
-  osc.start(ctx.currentTime + 0.8);
-  osc.stop(ctx.currentTime + 0.8 + 1.2);
+  // 结束钟声
+  setTimeout(() => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'triangle';
+    osc.frequency.value = 587.33;
+    gain.gain.setValueAtTime(0.22, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
+    osc.start(); osc.stop(ctx.currentTime + 1.5);
+  }, 900);
 }
 
 function updateDisplay() {
   const m = Math.floor(Math.abs(remainingSeconds) / 60);
   const s = Math.abs(remainingSeconds) % 60;
-  display.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  displayEl.innerHTML = String(m).padStart(2,'0') + '<span class="timer-sep">:</span>' + String(s).padStart(2,'0');
 }
 
 function updateRing() {
@@ -302,14 +438,12 @@ function updateRing() {
     const fraction = totalSeconds > 0 ? (totalSeconds - remainingSeconds) / totalSeconds : 0;
     ring.style.strokeDashoffset = CIRCUMFERENCE * fraction;
   } else {
-    // 正计时：圆圈走满一圈 = 60分钟
     const max = 60 * 60;
     const fraction = Math.min(remainingSeconds / max, 1);
     ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - fraction);
   }
 }
 
-// 初始化
 updateDisplay();
 updateRing();
 </script>
