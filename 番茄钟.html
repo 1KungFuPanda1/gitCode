@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍅 番茄钟</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  user-select: none; overflow: hidden;
+}
+.app {
+  background: rgba(255,255,255,0.03);
+  border-radius: 32px; padding: 48px 56px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+  backdrop-filter: blur(20px); text-align: center; min-width: 420px;
+}
+
+/* 模式切换 */
+.mode-switch {
+  display: flex; background: rgba(255,255,255,0.06); border-radius: 14px;
+  padding: 4px; margin-bottom: 32px; gap: 4px;
+}
+.mode-btn {
+  flex: 1; padding: 10px 20px; border: none; border-radius: 12px;
+  cursor: pointer; font-size: 15px; font-weight: 600;
+  background: transparent; color: #888; transition: all 0.3s;
+}
+.mode-btn.active {
+  background: #e74c3c; color: #fff; box-shadow: 0 4px 16px rgba(231,76,60,0.4);
+}
+
+/* 计时器圆圈 */
+.timer-ring-container {
+  position: relative; width: 280px; height: 280px; margin: 0 auto 32px;
+}
+.ring-bg {
+  fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 10;
+}
+.ring-progress {
+  fill: none; stroke: #e74c3c; stroke-width: 10;
+  stroke-linecap: round; transform: rotate(-90deg); transform-origin: center;
+  transition: stroke-dashoffset 0.3s linear;
+}
+.ring-progress.countup { stroke: #2ecc71; }
+.timer-display {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 54px; font-weight: 700; color: #fff;
+  font-variant-numeric: tabular-nums; font-family: 'Cascadia Code', 'Fira Code', monospace;
+  letter-spacing: 2px;
+}
+
+/* 预设时间 */
+.presets {
+  display: flex; gap: 10px; justify-content: center; margin-bottom: 24px;
+}
+.preset-btn {
+  padding: 8px 18px; border: 1px solid rgba(255,255,255,0.12); border-radius: 20px;
+  cursor: pointer; font-size: 14px; font-weight: 500; background: rgba(255,255,255,0.04);
+  color: #aaa; transition: all 0.25s;
+}
+.preset-btn:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.25); }
+.preset-btn.selected { background: #e74c3c; border-color: #e74c3c; color: #fff; }
+
+/* 控制按钮 */
+.controls { display: flex; gap: 14px; justify-content: center; margin-bottom: 20px; }
+.ctrl-btn {
+  width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
+  font-size: 22px; transition: all 0.25s; display: flex; align-items: center; justify-content: center;
+}
+.btn-start {
+  width: 72px; height: 72px; font-size: 28px;
+  background: #e74c3c; color: #fff; box-shadow: 0 8px 28px rgba(231,76,60,0.45);
+}
+.btn-start:hover { transform: scale(1.06); box-shadow: 0 12px 36px rgba(231,76,60,0.6); }
+.btn-start.running { background: #f39c12; box-shadow: 0 8px 28px rgba(243,156,18,0.45); }
+.btn-reset {
+  background: rgba(255,255,255,0.06); color: #888; border: 1px solid rgba(255,255,255,0.08);
+}
+.btn-reset:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+/* 状态文字 */
+.status { font-size: 13px; color: #666; margin-top: 8px; letter-spacing: 1px; }
+.status .tomato { margin-right: 4px; }
+
+/* 自定义时间 */
+.custom-row {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; margin-top: 16px;
+}
+.custom-row input {
+  width: 54px; padding: 8px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04); color: #fff; text-align: center; font-size: 15px; outline: none;
+}
+.custom-row input:focus { border-color: #e74c3c; }
+.custom-row span { color: #666; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- 模式切换 -->
+  <div class="mode-switch">
+    <button class="mode-btn active" data-mode="countdown" onclick="switchMode('countdown')">⏳ 倒计时</button>
+    <button class="mode-btn" data-mode="countup" onclick="switchMode('countup')">⏱ 正计时</button>
+  </div>
+
+  <!-- 计时器 -->
+  <div class="timer-ring-container">
+    <svg width="280" height="280" viewBox="0 0 280 280">
+      <circle class="ring-bg" cx="140" cy="140" r="125"/>
+      <circle class="ring-progress" id="ring" cx="140" cy="140" r="125"
+              stroke-dasharray="785.4" stroke-dashoffset="0"/>
+    </svg>
+    <div class="timer-display" id="display">25:00</div>
+  </div>
+
+  <!-- 预设 -->
+  <div class="presets">
+    <button class="preset-btn selected" onclick="setPreset(25)">25 分钟</button>
+    <button class="preset-btn" onclick="setPreset(15)">15 分钟</button>
+    <button class="preset-btn" onclick="setPreset(5)">5 分钟</button>
+    <button class="preset-btn" onclick="setPreset(45)">45 分钟</button>
+    <button class="preset-btn" onclick="setPreset(60)">60 分钟</button>
+  </div>
+
+  <!-- 控制 -->
+  <div class="controls">
+    <button class="ctrl-btn btn-reset" onclick="reset()" title="重置">↺</button>
+    <button class="ctrl-btn btn-start" id="startBtn" onclick="toggle()">▶</button>
+  </div>
+  <div class="status" id="status">🍅 准备专注</div>
+
+  <!-- 自定义 -->
+  <div class="custom-row">
+    <input type="number" id="customMin" min="1" max="120" value="30" placeholder="分钟">
+    <span>分钟</span>
+    <button class="preset-btn" onclick="setCustom()">自定义</button>
+  </div>
+</div>
+
+<script>
+const CIRCUMFERENCE = 2 * Math.PI * 125; // 785.4
+const ring = document.getElementById('ring');
+const display = document.getElementById('display');
+const startBtn = document.getElementById('startBtn');
+const statusEl = document.getElementById('status');
+ring.style.strokeDasharray = CIRCUMFERENCE;
+ring.style.strokeDashoffset = 0;
+
+let mode = 'countdown';       // 'countdown' | 'countup'
+let totalSeconds = 25 * 60;   // 预设25分钟
+let remainingSeconds = totalSeconds;
+let running = false;
+let interval = null;
+
+function switchMode(m) {
+  if (running) return;
+  mode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-mode="${m}"]`).classList.add('active');
+  ring.classList.toggle('countup', m === 'countup');
+  reset();
+}
+
+function setPreset(min) {
+  if (running) return;
+  totalSeconds = min * 60;
+  remainingSeconds = totalSeconds;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('selected'));
+  event.target.classList.add('selected');
+  updateDisplay();
+  updateRing();
+  statusEl.innerHTML = '🍅 准备专注';
+}
+
+function setCustom() {
+  const val = parseInt(document.getElementById('customMin').value);
+  if (val < 1 || val > 120) return;
+  if (running) return;
+  totalSeconds = val * 60;
+  remainingSeconds = totalSeconds;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('selected'));
+  updateDisplay();
+  updateRing();
+  statusEl.innerHTML = '🍅 准备专注';
+}
+
+function toggle() {
+  if (!running) start();
+  else pause();
+}
+
+function start() {
+  if (running) return;
+  if (mode === 'countdown' && remainingSeconds <= 0) {
+    remainingSeconds = totalSeconds;
+    updateDisplay();
+    updateRing();
+  }
+  running = true;
+  startBtn.textContent = '⏸';
+  startBtn.classList.add('running');
+  let statusText = mode === 'countdown'
+    ? '🍅 专注中...' : '⏱ 计时中...';
+  statusEl.innerHTML = statusText;
+
+  interval = setInterval(() => {
+    if (mode === 'countdown') {
+      remainingSeconds--;
+      if (remainingSeconds <= 0) {
+        remainingSeconds = 0;
+        complete();
+        return;
+      }
+    } else {
+      remainingSeconds++;
+    }
+    updateDisplay();
+    updateRing();
+  }, 1000);
+}
+
+function pause() {
+  running = false;
+  clearInterval(interval);
+  startBtn.textContent = '▶';
+  startBtn.classList.remove('running');
+  statusEl.innerHTML = '🍅 已暂停';
+}
+
+function reset() {
+  running = false;
+  clearInterval(interval);
+  if (mode === 'countdown') {
+    remainingSeconds = totalSeconds;
+  } else {
+    remainingSeconds = 0;
+  }
+  startBtn.textContent = '▶';
+  startBtn.classList.remove('running');
+  updateDisplay();
+  updateRing();
+  statusEl.innerHTML = '🍅 准备专注';
+}
+
+function complete() {
+  running = false;
+  clearInterval(interval);
+  startBtn.textContent = '▶';
+  startBtn.classList.remove('running');
+  statusEl.innerHTML = '🎉 完成！休息一下吧~';
+  updateDisplay();
+  updateRing();
+  playSound();
+  // 闪烁提示
+  let count = 0;
+  const flash = setInterval(() => {
+    statusEl.style.color = count % 2 === 0 ? '#e74c3c' : '#2ecc71';
+    if (++count >= 10) { clearInterval(flash); statusEl.style.color = '#666'; }
+  }, 500);
+}
+
+function playSound() {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  // 播放一段悦耳的完成音效
+  const notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
+  notes.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.25, ctx.currentTime + i * 0.2);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.2 + 0.5);
+    osc.start(ctx.currentTime + i * 0.2);
+    osc.stop(ctx.currentTime + i * 0.2 + 0.5);
+  });
+  // 最后一个长音
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.type = 'triangle';
+  osc.frequency.value = 1046.5;
+  gain.gain.setValueAtTime(0.3, ctx.currentTime + 0.8);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8 + 1.2);
+  osc.start(ctx.currentTime + 0.8);
+  osc.stop(ctx.currentTime + 0.8 + 1.2);
+}
+
+function updateDisplay() {
+  const m = Math.floor(Math.abs(remainingSeconds) / 60);
+  const s = Math.abs(remainingSeconds) % 60;
+  display.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+function updateRing() {
+  if (mode === 'countdown') {
+    const fraction = totalSeconds > 0 ? (totalSeconds - remainingSeconds) / totalSeconds : 0;
+    ring.style.strokeDashoffset = CIRCUMFERENCE * fraction;
+  } else {
+    // 正计时：圆圈走满一圈 = 60分钟
+    const max = 60 * 60;
+    const fraction = Math.min(remainingSeconds / max, 1);
+    ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - fraction);
+  }
+}
+
+// 初始化
+updateDisplay();
+updateRing();
+</script>
+</body>
+</html>
